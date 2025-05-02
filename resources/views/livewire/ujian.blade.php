@@ -1,4 +1,14 @@
 <div>
+    <style>
+       .active-question  {
+            border: 2px solid darkblue;
+       }
+
+       .no-hover:hover {
+            background-color: transparent !important;
+            color: inherit !important;
+       }
+    </style>
   <div class="container mt-4">
     <div class="row">
         <h4>{{$package->name}}</h4>
@@ -35,8 +45,16 @@
                     <h5 class="card-title">Navigasi</h5>
                     <div class="btn-group-flex" role="group">
                     @foreach($questions as $index => $item)
-
-                        <button type="button" wire:click="goToQuestion({{$index}})" class="btn btn-outline-primary">{{$index+1}}</button>
+                        @php
+                            $isAnswered = isset($selectedAnswers[$item->question_id]) && !is_null($selectedAnswers[$item->question_id]);
+                            $isActive = $currentPackageQuestion->question_id == $item->question_id;
+                        @endphp
+                         <div class="col-2 mb-2">
+                            <button 
+                                type="button" 
+                                wire:click="goToQuestion({{$index}})" 
+                                class="btn {{ $isAnswered ? 'btn-primary' : 'btn-outline-primary no-hover' }}" {{$isActive ? 'question'}}>{{$index+1}}</button>
+                         </div>    
                     @endforeach
                     </div>
                     <button type="button" class="btn btn-primary mt-3 w-100">Submit</button>
