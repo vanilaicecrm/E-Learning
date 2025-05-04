@@ -4,6 +4,8 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Ujian extends Model
 {
@@ -17,4 +19,18 @@ class Ujian extends Model
         'finished_at'
     ];
 
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    public function package()
+    {
+        return $this->belongsTo(related: Package::class);
+    }
+
+    public function ujianAnswers()
+    {
+        return $this->hasMany(UjianAnswer::class);
+    }
 }

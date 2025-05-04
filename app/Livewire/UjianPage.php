@@ -1,37 +1,38 @@
 <?php
 
-// File: app/Livewire/Ujian.php
 namespace App\Livewire;
 
 use Livewire\Component;
 use App\Models\Package;
-use App\Models\Question;
-use App\Models\Ujian as UjianModel; // ✅ Alias model Ujian
+use App\Models\Ujian;
 use App\Models\UjianAnswer;
 use App\Models\QuestionOption;
 use Illuminate\Support\Facades\Auth;
+use Filament\Notifications\Notification;
 
-class UjianPage extends Component // ✅ Ganti nama class dari `Ujian` ke `UjianPage`
+class UjianPage extends Component
 {
     public $package;
-    public $questions;
     public $ujian;
+    public $questions;
     public $currentPackageQuestion;
     public $timeLeft;
     public $ujianAnswers;
     public $selectedAnswers = [];
 
-    public function mount($id)
+    public function mount($packageId)
     {
-        $this->package = Package::with('questions.question.options')->find($id);
+        $this->package = Package::with('questions.question.options')->find($packageId);
+
         if ($this->package) {
             $this->questions = $this->package->questions;
+
             if ($this->questions->isNotEmpty()) {
                 $this->currentPackageQuestion = $this->questions->first();
             }
         }
 
-        $this->ujian = UjianModel::where('user_id', Auth::id())
+        $this->ujian = Ujian::where('user_id', Auth::id())
             ->where('package_id', $this->package->id)
             ->whereNull('finished_at')
             ->first();
@@ -40,19 +41,19 @@ class UjianPage extends Component // ✅ Ganti nama class dari `Ujian` ke `Ujian
             $startedAt = now();
             $durationInSecond = $this->package->duration * 60;
 
-            $this->ujian = UjianModel::create([
-                'user_id' => Auth::id(),
+            $this->ujian = Ujian::create([
+                'user_id'    => Auth::id(),
                 'package_id' => $this->package->id,
-                'duration' => $durationInSecond,
-                'started_at' => $startedAt,
+                'duration'   => $durationInSecond,
+                'started_at' => $startedAt
             ]);
 
             foreach ($this->questions as $question) {
                 UjianAnswer::create([
                     'ujian_id' => $this->ujian->id,
-                    'question_id' => $question->question_id,
-                    'option_id' => null,
-                    'score' => 0
+                    'question_id'     => $question->question_id,
+                    'option_id'       => null,
+                    'score'           => 0
                 ]);
             }
         }
@@ -74,20 +75,17 @@ class UjianPage extends Component // ✅ Ganti nama class dari `Ujian` ke `Ujian
     public function goToQuestion($package_question_id)
     {
         $this->currentPackageQuestion = $this->questions->where('id', $package_question_id)->first();
+        $this->ujianAnswers = UjianAnswer::where('ujian_id', $this->ujian->id)->get();
+        $this->calculateTimeLeft();
     }
 
-    public function calculateTimeLeft()
+    protected function calculateTimeLeft()
     {
-        if ($this->ujian->finished_at) {
-            $this->timeLeft = 0;
-            return;
-        }
-
         $now = time();
         $startedAt = strtotime($this->ujian->started_at);
+        $duration = $this->ujian->duration;
 
-        $sisaWaktu = $now - $startedAt;
-        $this->timeLeft = $sisaWaktu < 0 ? 0 : max(0, $this->ujian->duration - $sisaWaktu);
+        $this->timeLeft = $this->ujian->finished_at ? 0 : max(0, $duration - ($now - $startedAt));
     }
 
     public function saveAnswer($questionId, $optionId)
@@ -102,12 +100,25 @@ class UjianPage extends Component // ✅ Ganti nama class dari `Ujian` ke `Ujian
         if ($ujianAnswer) {
             $ujianAnswer->update([
                 'option_id' => $optionId,
-                'score' => $score
+                'score'     => $score
             ]);
         }
-
+        $this->selectedAnswers[$questionId] = $optionId;
         $this->ujianAnswers = UjianAnswer::where('ujian_id', $this->ujian->id)->get();
+        $this->calculateTimeLeft();
+        $this->dispatch('refreshComponent');
+    }
+
+    public function submit()
+    {
+        $this->ujian->update([
+            'finished_at' => now()
+        ]);
 
         $this->calculateTimeLeft();
+        Notification::make()
+            ->title('Sukses Menyimpan Jawaban')
+            ->success()
+            ->send();
     }
 }
