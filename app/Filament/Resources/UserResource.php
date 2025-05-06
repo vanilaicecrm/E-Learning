@@ -39,10 +39,23 @@ class UserResource extends Resource
                     ->searchable(),
                 Forms\Components\TextInput::make('password')
                     ->password()
-                    ->required(fn (string $context):bool => $context === 'create')
-                    ->dehydrateStateUsing(fn ($state) => Hash::make($state))
-                    ->dehydrated(fn ($state) => filled($state))
+                    ->required(fn(string $context): bool => $context === 'create')
+                    ->dehydrateStateUsing(fn($state) => Hash::make($state))
+                    ->dehydrated(fn($state) => filled($state))
                     ->maxLength(255),
+                Forms\Components\Select::make('major_id')
+                    ->relationship('major', 'name')
+                    ->label('Jurusan')
+                    ->required()
+                    ->searchable()
+                    ->preload(),
+                Forms\Components\Select::make('grade_id')
+                    ->relationship('grade', 'name')
+                    ->label('Kelas')
+                    ->required()
+                    ->searchable()
+                    ->preload(),
+
             ]);
     }
 
@@ -56,6 +69,10 @@ class UserResource extends Resource
                     ->searchable(),
                 Tables\Columns\TextColumn::make('roles.name')
                     ->searchable(),
+                Tables\Columns\TextColumn::make('major.name')
+                    ->label('Jurusan'),
+                Tables\Columns\TextColumn::make('grade.name')
+                    ->label('Kelas'),
                 Tables\Columns\TextColumn::make('email_verified_at')
                     ->dateTime()
                     ->sortable(),
