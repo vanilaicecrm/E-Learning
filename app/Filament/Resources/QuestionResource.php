@@ -2,85 +2,86 @@
 
 namespace App\Filament\Resources;
 
-use App\Filament\Resources\QuestionResource\Pages;
-use App\Filament\Resources\QuestionResource\RelationManagers;
 use App\Models\Question;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Filament\Forms\Components\Radio;
+use Filament\Forms\Components\Section;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\Repeater;
+use App\Filament\Resources\QuestionResource\Pages;
 
 class QuestionResource extends Resource
 {
     protected static ?string $model = Question::class;
-
-    protected static ?string $navigationIcon = 'heroicon-o-question-mark-circle';
-
-    protected static ?int  $navigationSort = 1;
+    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
 
     public static function form(Form $form): Form
     {
-        return $form
-            ->schema([
-                Forms\Components\RichEditor::make('question')
-                    ->required()
-                    ->columnSpanFull(),
-                Forms\Components\RichEditor::make('explanation')
-                    ->columnSpanFull(),
-                    Forms\Components\Repeater::make('options')
-                    ->relationship('options')
-                    ->schema([
-                        Forms\Components\RichEditor::make('option_text')->required(),
-                        Forms\Components\TextInput::make('score')->required(),
-                    ])
-                    ->columns(2)
-            ]);
+        return $form->schema([
+            Radio::make('input_method')
+                ->label('Metode Input')
+                ->options([
+                    'manual' => 'Input Manual',
+                    'upload' => 'Upload Excel',
+                ])
+                ->default('manual')
+                ->reactive(),
+
+            Section::make('Input Manual')
+                ->schema([
+                    TextInput::make('question')
+                        ->label('Pertanyaan')
+                        ->required(),
+
+                    Textarea::make('explanation')
+                        ->label('Penjelasan'),
+
+                    Repeater::make('options')
+                        ->label('Pilihan Jawaban')
+                        ->relationship('options')
+                        ->schema([
+                            TextInput::make('option_text')->label('Jawaban')->required(),
+                            TextInput::make('score')->label('Skor')->numeric()->required(),
+                        ])
+                        ->minItems(1),
+                ])
+                ->visible(fn ($get) => $get('input_method') === 'manual'),
+
+            Section::make('Upload Excel')
+                ->schema([
+                    FileUpload::make('file')
+                        ->label('File Excel')
+                        ->disk('public')
+                        ->directory('uploads/questions')
+                        ->required()
+                        ->acceptedFileTypes([
+                            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                            'application/vnd.ms-excel',
+                        ]),
+                ])
+                ->visible(fn ($get) => $get('input_method') === 'upload'),
+        ]);
     }
 
     public static function table(Table $table): Table
     {
-        return $table
-            ->columns([
-                Tables\Columns\TextColumn::make('id'),
-                Tables\Columns\TextColumn::make('question')->html(),
-                Tables\Columns\TextColumn::make('explanation')->html(),
-                Tables\Columns\TextColumn::make('option_count')
-                ->label('Total Jawaban')
-                ->counts('options'),
-                Tables\Columns\TextColumn::make('created_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-                Tables\Columns\TextColumn::make('updated_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-                Tables\Columns\TextColumn::make('deleted_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-            ])
-            ->filters([
-                //
-            ])
-            ->actions([
-                Tables\Actions\EditAction::make(),
-            ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
-                ]),
-            ]);
-    }
-
-    public static function getRelations(): array
-    {
-        return [
-            //
-        ];
+        return $table->columns([
+            Tables\Columns\TextColumn::make('id'),
+            Tables\Columns\TextColumn::make('question')->label('Pertanyaan')->limit(50),
+            Tables\Columns\TextColumn::make('explanation')->label('Penjelasan')->limit(50),
+            Tables\Columns\TextColumn::make('options_count')->label('Jumlah Opsi')->counts('options'),
+            Tables\Columns\TextColumn::make('created_at')->label('Dibuat')->dateTime(),
+        ])->actions([
+            Tables\Actions\ViewAction::make(),
+            Tables\Actions\EditAction::make(),
+            Tables\Actions\DeleteAction::make(),
+        ]);
     }
 
     public static function getPages(): array
