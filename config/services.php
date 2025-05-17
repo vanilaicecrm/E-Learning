@@ -34,5 +34,17 @@ return [
             'channel' => env('SLACK_BOT_USER_DEFAULT_CHANNEL'),
         ],
     ],
+    
+    'gemini' => [
+        'api_key' => env('GEMINI_API_KEY'),
+    ],
+
+     'pdftotext' => [
+        'path' => env('PDFTOTEXT_PATH', null), // e.g., 'C:\poppler\Library\bin\pdftotext.exe'
+    ],
+    
+    'tesseract' => [
+        'path' => env('TESSERACT_PATH', null), // e.g., 'C:\Program Files\Tesseract-OCR\tesseract.exe'
+    ],
 
 ];

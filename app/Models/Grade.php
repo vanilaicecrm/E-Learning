@@ -26,4 +26,9 @@ public function users()
     return $this->hasMany(User::class);
 }
 
+    public function subjects()
+    {
+        return $this->hasMany(Subject::class);
+    }
+
 }

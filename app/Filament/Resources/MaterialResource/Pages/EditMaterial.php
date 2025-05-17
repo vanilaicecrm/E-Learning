@@ -3,17 +3,20 @@
 namespace App\Filament\Resources\MaterialResource\Pages;
 
 use App\Filament\Resources\MaterialResource;
-use Filament\Actions;
 use Filament\Resources\Pages\EditRecord;
+use App\Services\GeminiService;
 
 class EditMaterial extends EditRecord
 {
     protected static string $resource = MaterialResource::class;
 
-    protected function getHeaderActions(): array
+    protected function mutateFormDataBeforeSave(array $data): array
     {
-        return [
-            Actions\DeleteAction::make(),
-        ];
+        if (!empty($data['ai_summary_enabled']) && !empty($data['description'])) {
+            $summary = app(GeminiService::class)->ringkas("Ringkas materi berikut:\n\n" . $data['description']);
+            $data['ringkasan'] = $summary ?? 'Ringkasan gagal dibuat.';
+        }
+
+        return $data;
     }
 }

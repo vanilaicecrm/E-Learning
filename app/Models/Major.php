@@ -26,5 +26,10 @@ class Major extends Model
     {
         return $this->hasMany(User::class);
     }
+
+      public function subjects()
+    {
+        return $this->hasMany(Subject::class);
+    }
     
 }
